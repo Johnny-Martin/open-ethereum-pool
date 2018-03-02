@@ -17,6 +17,8 @@ import (
 	"github.com/sammy007/open-ethereum-pool/payouts"
 	"github.com/sammy007/open-ethereum-pool/proxy"
 	"github.com/sammy007/open-ethereum-pool/storage"
+	"github.com/sammy007/open-ethereum-pool/rpc"
+	//"github.com/ethereum/go-ethereum/core/headerchain"
 )
 
 var cfg proxy.Config
@@ -80,6 +82,17 @@ func main() {
 		log.Printf("Running with %v threads", cfg.Threads)
 	}
 
+	log.Printf("===============>")
+	tempRpcClient := rpc.NewRPCClient("tempRpcClient", cfg.Payouts.Daemon, cfg.Payouts.Timeout)
+	//blockRlp 	  := GetBlockRLP(tempRpcClient, 13500)
+	//GetBlockRLP(tempRpcClient, 13500)
+	
+	ret := tempRpcClient.GetBlockRLP(13500)
+	tempRpcClient.GetBlockHeaderRLP(13500)
+	
+	log.Printf("@@@@@@@@: ", ret)
+	log.Printf("<===============")
+	
 	startNewrelic()
 
 	backend = storage.NewRedisClient(&cfg.Redis, cfg.Coin)
@@ -102,6 +115,7 @@ func main() {
 	if cfg.Payouts.Enabled {
 		go startPayoutsProcessor()
 	}
+	
 	quit := make(chan bool)
 	<-quit
 }

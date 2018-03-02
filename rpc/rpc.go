@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"log"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/sammy007/open-ethereum-pool/util"
 )
@@ -116,6 +119,65 @@ func (r *RPCClient) GetBlockByHeight(height int64) (*GetBlockReply, error) {
 	return r.getBlockBy("eth_getBlockByNumber", params)
 }
 
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
+func (r *RPCClient) GetBlockRLP(height int64) (string){
+	params := []interface{}{height}
+	method := "debug_getBlockRlp"
+	rpcResp, err := r.doPost(r.Url, method, params)
+	if err != nil {
+		return "!!!!!!!!!!!!!!!! err: " + err.Error()
+	}
+	
+	if rpcResp.Result != nil {
+		rlpData, error := json.Marshal(&rpcResp.Result)
+		if(error == nil){
+			return "!!!!!!!!!!!!!!!! we got something: " + string(rlpData)
+		}
+		return "!!!!!!!!!!!!!!!! we got something error"
+	}
+	return "nil"
+}
+
+func (r *RPCClient) GetBlockHeaderRLP(height int64){
+	params := []interface{}{height}
+	method := "debug_getBlockRlp"
+	rpcResp, err := r.doPost(r.Url, method, params)
+	if err != nil {
+		log.Printf("!!!!!!!!!!!!!!!! err: " + err.Error())
+		return 
+	}
+	
+	if rpcResp.Result != nil {
+		rlpBytes, _ := json.Marshal(&rpcResp.Result)
+		rlpStr 	 := string(rlpBytes)
+		log.Printf("rlpStr from RPC result", rlpStr)
+		
+		var block types.Block
+		rlpErr := rlp.DecodeBytes(rlpBytes, &block)
+		if rlpErr != nil {
+			log.Printf("!!!!!!!!!!!!!! decode block RLP data error: " + rlpErr.Error())
+			return
+		}
+		
+		// log.Printf("block hash: ", string(block.Hash().String()))
+		// header := block.Header()
+		// headerHash := header.Hash()
+		
+		// log.Printf("header hash: ", string(headerHash.String()))
+		
+		////headerNoNonceHash := header.HashNoNonce()
+		
+		// headerRlpByte, hErr := rlp.EncodeToBytes(header)
+		// if(hErr != nil){
+			// log.Printf("header EncodeToBytes error: ", hErr.Error())
+			// return
+		// }
+		
+		// log.Printf("headerRlpByte::::::", string(headerRlpByte))
+	}
+}
+
 func (r *RPCClient) GetBlockByHash(hash string) (*GetBlockReply, error) {
 	params := []interface{}{hash, true}
 	return r.getBlockBy("eth_getBlockByHash", params)
@@ -137,6 +199,19 @@ func (r *RPCClient) getBlockBy(method string, params []interface{}) (*GetBlockRe
 		return reply, err
 	}
 	return nil, nil
+}
+
+func (r *RPCClient) getBlock(height int64) (*types.Block){
+	// params := []interface{}{height}
+	// method := "eth_getBlockByNumber"
+	// rpcResp, err := r.doPost(r.Url, method, params)
+	// if err != nil {
+		// return nil
+	// }
+	
+	// var block *types.Block
+	// err = json.Unmarshal(*rpcResp.Result, &block)
+	return nil
 }
 
 func (r *RPCClient) GetTxReceipt(hash string) (*TxReceipt, error) {
