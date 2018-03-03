@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"log"
 	"fmt"
@@ -46,6 +47,18 @@ type GetBlockReply struct {
 }
 
 type BlockNonce [8]byte
+// MarshalText encodes n as a hex string with 0x prefix.
+func (n BlockNonce) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(n[:]).MarshalText()
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (n *BlockNonce) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
+}
+func (n *BlockNonce) String() string {
+	return "0x" + hex.EncodeToString(n[:])
+}
 
 const (
 	// BloomByteLength represents the number of bytes used in a header log bloom.
@@ -55,6 +68,19 @@ const (
 	BloomBitLength = 8 * BloomByteLength
 )
 type BloomType [BloomByteLength]byte
+// MarshalText encodes b as a hex string with 0x prefix.
+func (b BloomType) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(b[:]).MarshalText()
+}
+
+// UnmarshalText b as a hex string with 0x prefix.
+func (b *BloomType) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("Bloom", input, b[:])
+}
+
+func (b *BloomType) String() string {
+	return "0x" + hex.EncodeToString(b[:])
+}
 
 type BlockHeader struct {
 	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
@@ -63,7 +89,7 @@ type BlockHeader struct {
 	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-	Bloom       string    	   `json:"logsBloom"        gencodec:"required"`
+	Bloom       BloomType      `json:"logsBloom"        gencodec:"required"`
 	Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 	Number      *hexutil.Big   `json:"number"           gencodec:"required"`
 	GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
@@ -71,7 +97,7 @@ type BlockHeader struct {
 	Time        *hexutil.Big   `json:"timestamp"        gencodec:"required"`
 	Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
-	Nonce       string     	   `json:"nonce"            gencodec:"required"`
+	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 }
 
 type Block struct {
@@ -199,7 +225,7 @@ func (r *RPCClient) GetHeaderRLP(height int64){
 		log.Printf("Root: "+header.Root.String())
 		log.Printf("TxHash: "+header.TxHash.String())
 		log.Printf("ReceiptHash: "+header.ReceiptHash.String())
-		log.Printf("Bloom: "+header.Bloom)
+		log.Printf("Bloom: "+header.Bloom.String())
 		log.Printf("Difficulty: "+header.Difficulty.String())
 		log.Printf("Number: "+header.Number.String())
 		log.Printf("GasLimit: "+header.GasLimit.String())
@@ -207,7 +233,7 @@ func (r *RPCClient) GetHeaderRLP(height int64){
 		log.Printf("Time: "+header.Time.String())
 		log.Printf("Extra: "+header.Extra.String())
 		log.Printf("MixDigest: "+header.MixDigest.String())
-		log.Printf("Nonce: "+header.Nonce)
+		log.Printf("Nonce: "+header.Nonce.String())
 	}
 }
 
