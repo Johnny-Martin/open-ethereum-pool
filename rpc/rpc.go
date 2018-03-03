@@ -14,8 +14,9 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/core/types"
+	//"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/sammy007/open-ethereum-pool/util"
 )
@@ -42,6 +43,40 @@ type GetBlockReply struct {
 	Uncles       []string `json:"uncles"`
 	// https://github.com/ethereum/EIPs/issues/95
 	SealFields []string `json:"sealFields"`
+}
+
+type BlockNonce [8]byte
+
+const (
+	// BloomByteLength represents the number of bytes used in a header log bloom.
+	BloomByteLength = 256
+
+	// BloomBitLength represents the number of bits used in a header log bloom.
+	BloomBitLength = 8 * BloomByteLength
+)
+type BloomType [BloomByteLength]byte
+
+type BlockHeader struct {
+	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
+	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+	Coinbase    common.Address `json:"miner"            gencodec:"required"`
+	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
+	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+	Bloom       string    	   `json:"logsBloom"        gencodec:"required"`
+	Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
+	Number      *hexutil.Big   `json:"number"           gencodec:"required"`
+	GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
+	GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
+	Time        *hexutil.Big   `json:"timestamp"        gencodec:"required"`
+	Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
+	Nonce       string     	   `json:"nonce"            gencodec:"required"`
+}
+
+type Block struct {
+	Header       *BlockHeader
+	uncles       []*BlockHeader
 }
 
 type GetBlockReplyPart struct {
@@ -139,6 +174,44 @@ func (r *RPCClient) GetBlockRLP(height int64) (string){
 	return "nil"
 }
 
+func (r *RPCClient) GetHeaderRLP(height int64){
+	params := []interface{}{fmt.Sprintf("0x%x", height), true}
+	method := "eth_getBlockByNumber"
+	
+	rpcResp, err := r.doPost(r.Url, method, params)
+	if err != nil {
+		log.Printf("!!!!!!!!!!!!!!!! err: " + err.Error())
+		return 
+	}
+	
+	if rpcResp.Result != nil {
+		var header *BlockHeader
+		err = json.Unmarshal(*rpcResp.Result, &header)
+		//cannot unmarshal "0xc24c3" into a *big.Int
+		if(err != nil){
+			log.Printf("!!!!!!!#######GetHeaderRLP Unmarshal json data error: "+err.Error())
+			return
+		}
+		
+		log.Printf("ParentHash: "+header.ParentHash.String())
+		log.Printf("UncleHash: "+header.UncleHash.String())
+		log.Printf("Coinbase: "+header.Coinbase.String())
+		log.Printf("Root: "+header.Root.String())
+		log.Printf("TxHash: "+header.TxHash.String())
+		log.Printf("ReceiptHash: "+header.ReceiptHash.String())
+		log.Printf("Bloom: "+header.Bloom)
+		log.Printf("Difficulty: "+header.Difficulty.String())
+		log.Printf("Number: "+header.Number.String())
+		log.Printf("GasLimit: "+header.GasLimit.String())
+		log.Printf("GasUsed: "+header.GasUsed.String())
+		log.Printf("Time: "+header.Time.String())
+		log.Printf("Extra: "+header.Extra.String())
+		log.Printf("MixDigest: "+header.MixDigest.String())
+		log.Printf("Nonce: "+header.Nonce)
+	}
+}
+
+
 func (r *RPCClient) GetBlockHeaderRLP(height int64){
 	params := []interface{}{height}
 	method := "debug_getBlockRlp"
@@ -152,13 +225,24 @@ func (r *RPCClient) GetBlockHeaderRLP(height int64){
 		rlpBytes, _ := json.Marshal(&rpcResp.Result)
 		rlpStr 	 := string(rlpBytes)
 		log.Printf("rlpStr from RPC result", rlpStr)
+		log.Printf("rlpBytes len: ", len(rlpBytes))
 		
-		var block types.Block
-		rlpErr := rlp.DecodeBytes(rlpBytes, &block)
-		if rlpErr != nil {
-			log.Printf("!!!!!!!!!!!!!! decode block RLP data error: " + rlpErr.Error())
+		rlp.ListSize(15)
+		var header *BlockHeader
+		rlpErr := rlp.DecodeBytes(rlpBytes, &header)
+		if(rlpErr != nil){
+			log.Printf("%%%%%%%%%%%%%%% rlpErr : " + rlpErr.Error())
 			return
 		}
+		log.Printf("header ParentHash : "+header.ParentHash.String())
+		
+		// var block types.Block
+		// log.Printf(block.Hash().String())
+		// rlpErr := rlp.DecodeBytes(rlpBytes, &block)
+		// if rlpErr != nil {
+			// log.Printf("!!!!!!!!!!!!!! decode block RLP data error: " + rlpErr.Error())
+			// return
+		// }
 		
 		// log.Printf("block hash: ", string(block.Hash().String()))
 		// header := block.Header()
@@ -201,7 +285,7 @@ func (r *RPCClient) getBlockBy(method string, params []interface{}) (*GetBlockRe
 	return nil, nil
 }
 
-func (r *RPCClient) getBlock(height int64) (*types.Block){
+// func (r *RPCClient) getBlock(height int64) (*types.Block){
 	// params := []interface{}{height}
 	// method := "eth_getBlockByNumber"
 	// rpcResp, err := r.doPost(r.Url, method, params)
@@ -211,8 +295,8 @@ func (r *RPCClient) getBlock(height int64) (*types.Block){
 	
 	// var block *types.Block
 	// err = json.Unmarshal(*rpcResp.Result, &block)
-	return nil
-}
+	// return nil
+// }
 
 func (r *RPCClient) GetTxReceipt(hash string) (*TxReceipt, error) {
 	rpcResp, err := r.doPost(r.Url, "eth_getTransactionReceipt", []string{hash})

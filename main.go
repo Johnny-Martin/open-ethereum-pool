@@ -87,10 +87,11 @@ func main() {
 	//blockRlp 	  := GetBlockRLP(tempRpcClient, 13500)
 	//GetBlockRLP(tempRpcClient, 13500)
 	
-	ret := tempRpcClient.GetBlockRLP(13500)
-	tempRpcClient.GetBlockHeaderRLP(13500)
+	//ret := tempRpcClient.GetBlockRLP(13500)
+	// tempRpcClient.GetBlockHeaderRLP(13500)
+	tempRpcClient.GetHeaderRLP(13500)
 	
-	log.Printf("@@@@@@@@: ", ret)
+	//log.Printf("@@@@@@@@: ", ret)
 	log.Printf("<===============")
 	
 	startNewrelic()
